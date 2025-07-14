@@ -1,0 +1,19 @@
+# === Frontend: revx-fe ===
+revx-fe/node_modules/
+revx-fe/.next/
+revx-fe/.env.local
+revx-fe/.env
+revx-fe/package-lock.json
+revx-fe/.DS_Store
+
+# === Backend: revx-be-1 ===
+revx-be/node_modules/
+revx-be/.env
+revx-be/package-lock.json
+revx-be/.DS_Store
+revx-be/.idea/
+
+# === General ===
+*.log
+.DS_Store
+.env
