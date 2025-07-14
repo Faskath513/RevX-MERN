@@ -1,13 +1,19 @@
-import { reviewCycles } from '../../../data/reviewCycles'; // Example data source
+export default async function handler(req, res) {
+  const BACKEND_URL = process.env.BACKEND_URL;
 
-export default function handler(req, res) {
   if (req.method === 'GET') {
-    res.status(200).json(reviewCycles);
+    const response = await fetch(`${BACKEND_URL}/api/review-cycles`);
+    const data = await response.json();
+    res.status(200).json(data);
   } else if (req.method === 'POST') {
-    const newCycle = req.body;
-    reviewCycles.push(newCycle); // Add new review cycle to the list (replace with actual DB logic)
-    res.status(201).json(newCycle);
+    const response = await fetch(`${BACKEND_URL}/api/review-cycles`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(req.body),
+    });
+    const data = await response.json();
+    res.status(201).json(data);
   } else {
-    res.status(405).end(); // Method Not Allowed
+    res.status(405).end();
   }
 }

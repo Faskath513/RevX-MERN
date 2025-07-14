@@ -1,12 +1,27 @@
-import { feedback } from '../../../data/feedback'; // Example data source
+// pages/api/feedback/index.js
 
-export default function handler(req, res) {
+export default async function handler(req, res) {
   if (req.method === 'GET') {
-    res.status(200).json(feedback);
+    try {
+      const response = await fetch(`${process.env.NBACKEND_URL}/api/feedback`);
+      const feedback = await response.json();
+      res.status(200).json(feedback);
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to fetch feedback' });
+    }
   } else if (req.method === 'POST') {
-    const newFeedback = req.body;
-    feedback.push(newFeedback); // Add new feedback to the list (replace with actual DB logic)
-    res.status(201).json(newFeedback);
+    try {
+      const response = await fetch(`${process.env.BACKEND_URL}/api/feedback`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(req.body),
+      });
+
+      const result = await response.json();
+      res.status(201).json(result);
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to create feedback' });
+    }
   } else {
     res.status(405).end(); // Method Not Allowed
   }

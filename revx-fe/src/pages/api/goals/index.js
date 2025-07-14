@@ -1,13 +1,20 @@
-import { goals } from '../../../data/goals'; // Example data source
+// No need to import from data
 
-export default function handler(req, res) {
+export default async function handler(req, res) {
   if (req.method === 'GET') {
-    res.status(200).json(goals);
+    const response = await fetch(`${process.env.BACKEND_URL}/api/goals`);
+    const data = await response.json();
+    res.status(200).json(data);
   } else if (req.method === 'POST') {
     const newGoal = req.body;
-    goals.push(newGoal); // Add new goal to the list (replace with actual DB logic)
-    res.status(201).json(newGoal);
+    const response = await fetch(`${process.env.BACKEND_URL}/api/goals`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(newGoal),
+    });
+    const result = await response.json();
+    res.status(201).json(result);
   } else {
-    res.status(405).end(); // Method Not Allowed
+    res.status(405).end();
   }
 }
