@@ -1,23 +1,28 @@
-import { reviewCycles } from '../../../data/reviewCycles'; // Example data source
-
-export default function handler(req, res) {
+export default async function handler(req, res) {
   const { id } = req.query;
-  const cycle = reviewCycles.find(c => c.id === parseInt(id));
+  const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL;
 
-  if (req.method === 'PUT') {
-    if (!cycle) {
-      return res.status(404).json({ message: 'Review cycle not found' });
+  try {
+    if (req.method === 'PUT') {
+      const response = await fetch(`${BACKEND_URL}/api/review-cycles/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(req.body),
+      });
+      const data = await response.json();
+      return res.status(response.status).json(data);
+
+    } else if (req.method === 'DELETE') {
+      const response = await fetch(`${BACKEND_URL}/api/review-cycles/${id}`, {
+        method: 'DELETE',
+      });
+      return res.status(response.status).end();
+
+    } else {
+      return res.status(405).end(); // Method Not Allowed
     }
-    const updatedCycle = { ...cycle, ...req.body };
-    res.status(200).json(updatedCycle);
-  } else if (req.method === 'DELETE') {
-    if (!cycle) {
-      return res.status(404).json({ message: 'Review cycle not found' });
-    }
-    const index = reviewCycles.indexOf(cycle);
-    reviewCycles.splice(index, 1); // Remove review cycle from the list (replace with actual DB logic)
-    res.status(204).end();
-  } else {
-    res.status(405).end(); // Method Not Allowed
+  } catch (error) {
+    console.error('API error:', error);
+    return res.status(500).json({ error: 'Internal Server Error' });
   }
 }

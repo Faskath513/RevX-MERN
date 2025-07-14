@@ -1,23 +1,31 @@
-import { feedback } from '../../../data/feedback'; // Example data source
-
-export default function handler(req, res) {
+export default async function handler(req, res) {
   const { id } = req.query;
-  const fb = feedback.find(f => f.id === parseInt(id));
+  const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL;
 
-  if (req.method === 'PUT') {
-    if (!fb) {
-      return res.status(404).json({ message: 'Feedback not found' });
+  try {
+    if (req.method === 'PUT') {
+      const response = await fetch(`${BACKEND_URL}/api/feedback/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(req.body),
+      });
+
+      const result = await response.json();
+      return res.status(response.status).json(result);
+
+    } else if (req.method === 'DELETE') {
+      const response = await fetch(`${BACKEND_URL}/api/feedback/${id}`, {
+        method: 'DELETE',
+      });
+
+      return res.status(response.status).end();
+
+    } else {
+      return res.status(405).end(); // Method Not Allowed
     }
-    const updatedFeedback = { ...fb, ...req.body };
-    res.status(200).json(updatedFeedback);
-  } else if (req.method === 'DELETE') {
-    if (!fb) {
-      return res.status(404).json({ message: 'Feedback not found' });
-    }
-    const index = feedback.indexOf(fb);
-    feedback.splice(index, 1); // Remove feedback from the list (replace with actual DB logic)
-    res.status(204).end();
-  } else {
-    res.status(405).end(); // Method Not Allowed
+
+  } catch (error) {
+    console.error('API error:', error);
+    return res.status(500).json({ error: 'Internal Server Error' });
   }
 }
