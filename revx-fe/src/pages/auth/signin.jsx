@@ -140,16 +140,16 @@ const SignIn = () => {
     setResetLoading(true);
 
     try {
-      const response = await fetch("http://localhost:5001/api/auth/reset-password", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ 
-          token: resetToken, 
-          newPassword 
-        }),
-      });
+      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/auth/reset-password`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ 
+        token: resetToken, 
+        newPassword 
+      }),
+    });
 
       const data = await response.json();
 

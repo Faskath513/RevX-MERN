@@ -1,0 +1,19 @@
+{
+  "version": 2,
+  "builds": [
+    {
+      "src": "revx-be-1/api/**/*.js",
+      "use": "@vercel/node"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/api/(.*)",
+      "dest": "revx-be-1/api/$1.js"
+    }
+  ],
+  "env": {
+    "DB_CONNECTION_STRING": "your-db-connection-string",
+    "OTHER_ENV_VAR": "value"
+  }
+}
