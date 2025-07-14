@@ -3,7 +3,7 @@
 export default async function handler(req, res) {
   if (req.method === 'GET') {
     try {
-      const response = await fetch(`${process.env.NBACKEND_URL}/api/feedback`);
+      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/feedback`);
       const feedback = await response.json();
       res.status(200).json(feedback);
     } catch (error) {
@@ -11,7 +11,7 @@ export default async function handler(req, res) {
     }
   } else if (req.method === 'POST') {
     try {
-      const response = await fetch(`${process.env.BACKEND_URL}/api/feedback`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/feedback`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(req.body),

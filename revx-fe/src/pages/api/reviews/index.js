@@ -1,13 +1,30 @@
-import { reviews } from '../../../data/reviews'; // Example data source
+export default async function handler(req, res) {
+  const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL;
 
-export default function handler(req, res) {
   if (req.method === 'GET') {
-    res.status(200).json(reviews);
-  } else if (req.method === 'POST') {
-    const newReview = req.body;
-    reviews.push(newReview); // Add new review to the list (replace with actual DB logic)
-    res.status(201).json(newReview);
-  } else {
-    res.status(405).end(); // Method Not Allowed
+    try {
+      const response = await fetch(`${BACKEND_URL}/api/reviews`);
+      const data = await response.json();
+      return res.status(200).json(data);
+    } catch (error) {
+      return res.status(500).json({ error: 'Failed to fetch reviews' });
+    }
   }
+
+  if (req.method === 'POST') {
+    try {
+      const response = await fetch(`${BACKEND_URL}/api/reviews`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(req.body),
+      });
+
+      const data = await response.json();
+      return res.status(response.status).json(data);
+    } catch (error) {
+      return res.status(500).json({ error: 'Failed to post review' });
+    }
+  }
+
+  return res.status(405).end(); // Method Not Allowed
 }
