@@ -4,6 +4,10 @@ const User = require('../models/User');
 const Team = require('../models/Team');
 const Department = require('../models/Department');
 const Task = require('../models/Task');
+const {
+  notifyEmployeeOnTaskReviewCreated,
+  notifyHROnTaskReviewSubmitted
+} = require('../controllers/notificationController');
 
 // HR creates a Task Review Cycle
 exports.createTaskReview = async (req, res) => {
@@ -18,13 +22,11 @@ exports.createTaskReview = async (req, res) => {
       employeeId
     } = req.body;
 
-    // Check if requester is HR
     const hrAdmin = await User.findById(req.user.id);
     if (!hrAdmin || hrAdmin.role !== 'hr') {
       return res.status(403).json({ message: 'HR Admin access required' });
     }
 
-    // Validate references
     const [department, team, goal, task, employee] = await Promise.all([
       Department.findById(departmentId),
       Team.findById(teamId),
@@ -39,7 +41,6 @@ exports.createTaskReview = async (req, res) => {
     if (!task) return res.status(404).json({ message: 'Task not found' });
     if (!employee) return res.status(404).json({ message: 'Employee not found' });
 
-    // Create Task Review
     const taskReview = new TaskReview({
       hrAdminId: req.user.id,
       departmentId,
@@ -49,19 +50,27 @@ exports.createTaskReview = async (req, res) => {
       description,
       employeeId,
       dueDate,
+      taskDueDate: task.dueDate, // Store the task's actual due date
       status: 'Pending'
     });
 
     await taskReview.save();
+    await notifyEmployeeOnTaskReviewCreated(taskReview);
+
     res.status(201).json({ message: 'Task Review created successfully', taskReview });
   } catch (error) {
     res.status(500).json({ message: 'Error creating task review', error });
   }
 };
 
-// HR updates a Task Review Cycle
+// HR updates a Task Review Cycle (preserve past data if not updated)
 exports.updateTaskReview = async (req, res) => {
   try {
+    // Only HR can update
+    if (req.user.role !== 'hr') {
+      return res.status(403).json({ message: 'Access denied. Only HR can update task review cycles.' });
+    }
+
     const { id } = req.params;
     const {
       description,
@@ -76,35 +85,35 @@ exports.updateTaskReview = async (req, res) => {
     const taskReview = await TaskReview.findById(id);
     if (!taskReview) return res.status(404).json({ message: 'Task Review not found' });
 
-    // Update fields only if provided
-    if (description) taskReview.description = description;
-    if (dueDate) taskReview.dueDate = dueDate;
+    if (description !== undefined) taskReview.description = description;
+    if (dueDate !== undefined) taskReview.dueDate = dueDate;
 
-    if (teamId) {
+    if (teamId !== undefined && teamId !== taskReview.teamId.toString()) {
       const team = await Team.findById(teamId);
       if (!team) return res.status(404).json({ message: 'Team not found' });
       taskReview.teamId = teamId;
     }
 
-    if (projectId) {
+    if (projectId !== undefined && projectId !== taskReview.projectId.toString()) {
       const goal = await Goal.findById(projectId);
       if (!goal) return res.status(404).json({ message: 'Goal not found' });
       taskReview.projectId = projectId;
     }
 
-    if (departmentId) {
+    if (departmentId !== undefined && departmentId !== taskReview.departmentId.toString()) {
       const department = await Department.findById(departmentId);
       if (!department) return res.status(404).json({ message: 'Department not found' });
       taskReview.departmentId = departmentId;
     }
 
-    if (taskId) {
+    if (taskId !== undefined && taskId !== taskReview.taskId.toString()) {
       const task = await Task.findById(taskId);
       if (!task) return res.status(404).json({ message: 'Task not found' });
       taskReview.taskId = taskId;
+      taskReview.taskDueDate = task.dueDate; // Update taskDueDate if taskId changes
     }
 
-    if (employeeId) {
+    if (employeeId !== undefined && employeeId !== taskReview.employeeId.toString()) {
       const employee = await User.findById(employeeId);
       if (!employee) return res.status(404).json({ message: 'Employee not found' });
       taskReview.employeeId = employeeId;
@@ -117,13 +126,21 @@ exports.updateTaskReview = async (req, res) => {
   }
 };
 
+
 // HR deletes a Task Review Cycle
 exports.deleteTaskReview = async (req, res) => {
   try {
+    // Check if the user is an HR admin
+    if (req.user.role !== 'hr') {
+      return res.status(403).json({ message: 'Unauthorized: Only HR can delete task reviews' });
+    }
+
     const { id } = req.params;
 
     const taskReview = await TaskReview.findById(id);
-    if (!taskReview) return res.status(404).json({ message: 'Task Review not found' });
+    if (!taskReview) {
+      return res.status(404).json({ message: 'Task Review not found' });
+    }
 
     await TaskReview.findByIdAndDelete(id);
     res.status(200).json({ message: 'Task Review deleted successfully' });
@@ -132,15 +149,21 @@ exports.deleteTaskReview = async (req, res) => {
   }
 };
 
+
 // HR gets all Task Review Cycles
 exports.getAllTaskReviews = async (req, res) => {
   try {
+    const hrAdmin = await User.findById(req.user.id);
+    if (!hrAdmin || hrAdmin.role !== 'hr') {
+      return res.status(403).json({ message: 'HR Admin access required' });
+    }
+
     const taskReviews = await TaskReview.find()
       .populate('hrAdminId', 'username')
       .populate('departmentId', 'departmentName')
       .populate('teamId', 'teamName')
       .populate('projectId', 'projectTitle')
-      .populate('taskId', 'taskTitle')
+      .populate('taskId', 'taskTitle dueDate')
       .populate('employeeId', 'username');
 
     res.status(200).json(taskReviews);
@@ -157,10 +180,17 @@ exports.getTaskReviewById = async (req, res) => {
       .populate('departmentId', 'departmentName')
       .populate('teamId', 'teamName')
       .populate('projectId', 'projectTitle')
-      .populate('taskId', 'taskTitle')
+      .populate('taskId', 'taskTitle dueDate')
       .populate('employeeId', 'username');
 
     if (!taskReview) return res.status(404).json({ message: 'Task Review not found' });
+
+    if (
+      req.user.role !== 'hr' &&
+      taskReview.employeeId._id.toString() !== req.user.id
+    ) {
+      return res.status(403).json({ message: 'Unauthorized access' });
+    }
 
     res.status(200).json(taskReview);
   } catch (error) {
@@ -168,7 +198,28 @@ exports.getTaskReviewById = async (req, res) => {
   }
 };
 
-// Employee submits a Task Review
+// Employee views only their Task Reviews
+exports.getMyTaskReviews = async (req, res) => {
+  try {
+    const employee = await User.findById(req.user.id);
+    if (!employee || employee.role !== 'employee') {
+      return res.status(403).json({ message: 'Employee access required' });
+    }
+
+    const myReviews = await TaskReview.find({ employeeId: req.user.id })
+      .populate('taskId', 'taskTitle dueDate')
+      .populate('projectId', 'projectTitle')
+      .populate('departmentId', 'departmentName')
+      .populate('teamId', 'teamName')
+      .populate('hrAdminId', 'username');
+
+    res.status(200).json(myReviews);
+  } catch (error) {
+    res.status(500).json({ message: 'Error fetching your task reviews', error });
+  }
+};
+
+// Employee submits review (only for their own task)
 exports.submitEmployeeReview = async (req, res) => {
   try {
     const { id } = req.params;
@@ -178,7 +229,7 @@ exports.submitEmployeeReview = async (req, res) => {
     if (!taskReview) return res.status(404).json({ message: 'Task Review not found' });
 
     if (taskReview.employeeId.toString() !== req.user.id) {
-      return res.status(403).json({ message: 'Unauthorized: Not assigned to this task' });
+      return res.status(403).json({ message: 'Unauthorized: Not your review' });
     }
 
     taskReview.employeeReview = employeeReview;
@@ -186,6 +237,8 @@ exports.submitEmployeeReview = async (req, res) => {
     taskReview.submissionDate = new Date();
 
     await taskReview.save();
+    await notifyHROnTaskReviewSubmitted(taskReview);
+
     res.status(200).json({ message: 'Task review submitted successfully', taskReview });
   } catch (error) {
     res.status(500).json({ message: 'Error submitting task review', error });
@@ -202,7 +255,7 @@ exports.getAllEmployeeReviews = async (req, res) => {
 
     const reviews = await TaskReview.find({ employeeReview: { $exists: true, $ne: null } })
       .populate('employeeId', 'username')
-      .populate('taskId', 'taskTitle')
+      .populate('taskId', 'taskTitle dueDate')
       .select('taskId employeeId employeeReview submissionDate');
 
     res.status(200).json(reviews);

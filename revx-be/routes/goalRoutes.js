@@ -5,6 +5,7 @@ const {
   createGoal,
   getTeamGoals,
   getAllGoals,
+  getAllGoalsForHR,
   getGoalById,
   updateGoal,
   deleteGoal
@@ -12,6 +13,7 @@ const {
 
 router.post('/create', authenticate, createGoal);
 router.get('/', authenticate, getAllGoals);
+router.get('/hr', authenticate, getAllGoalsForHR);
 router.get('/:projectId', authenticate, getGoalById);
 router.get('/team/:teamId', authenticate, getTeamGoals);
 router.put('/:id', authenticate, updateGoal);

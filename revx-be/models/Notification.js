@@ -1,40 +1,38 @@
 const mongoose = require('mongoose');
 
+
 const notificationSchema = new mongoose.Schema({
   recipientId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
-    required: true // The user (Manager, Employee, or HR) who receives this notification
+    required: true
   },
   senderId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
-    required: true // The user who triggered the notification (HR or Manager or Employee)
+    required: true
   },
   type: {
     type: String,
-    enum: ['GoalReviewCreated', 'TaskReviewCreated', 'GoalReviewSubmitted', 'TaskReviewSubmitted'],
+    enum: [
+      'GoalReviewCreated',
+      'TaskReviewCreated',
+      'GoalReviewSubmitted',
+      'TaskReviewSubmitted',
+      'Reminder'
+    ],
     required: true
   },
-  title: {
+  title: { type: String, required: true },
+  message: { type: String, required: true },
+  link: { type: String },
+  relatedEntityId: { type: mongoose.Schema.Types.ObjectId }, // Optional
+  entityType: {
     type: String,
-    required: true
+    enum: ['GoalReview', 'TaskReview'],
+    required: false
   },
-  message: {
-    type: String,
-    required: true
-  },
-  link: {
-    type: String
-  },
-  isRead: {
-    type: Boolean,
-    default: false
-  },
-  createdAt: {
-    type: Date,
-    default: Date.now
-  }
+  isRead: { type: Boolean, default: false },
+  createdAt: { type: Date, default: Date.now }
 });
-
 module.exports = mongoose.model('Notification', notificationSchema);

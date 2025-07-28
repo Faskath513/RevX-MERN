@@ -39,7 +39,7 @@ exports.createTask = async (req, res) => {
   }
 };
 
-// Get all tasks (HR/Admin: all, Manager: own)
+// Get all tasks for manager)
 exports.getAllTasks = async (req, res) => {
   try {
     let tasks;

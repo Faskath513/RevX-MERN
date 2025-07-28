@@ -101,14 +101,11 @@ exports.login = async (req, res) => {
   }
 };
 
-/// ✉️ Request password reset (updated with better error handling)
 exports.requestPasswordReset = async (req, res) => {
   const { email } = req.body;
-
   try {
     const user = await User.findOne({ email });
     if (!user) {
-      // Don't reveal if user doesn't exist for security
       return res.json({ message: 'If an account exists with this email, a reset link has been sent' });
     }
 
@@ -126,68 +123,71 @@ exports.requestPasswordReset = async (req, res) => {
     await transporter.sendMail({
       to: user.email,
       subject: 'Password Reset Request',
-      html: `
-        <p>You requested a password reset. Click the link below to set a new password:</p>
-        <a href="${resetLink}">Reset Password</a>
-        <p>This link is valid for 15 minutes.</p>
-        <p>If you didn't request this, please ignore this email.</p>
-      `,
+      html: `<p>You requested a password reset. Click below to reset:</p>
+             <a href="${resetLink}">Reset Password</a>
+             <p>Valid for 15 minutes.</p>`
     });
 
-    res.json({ 
-      success: true,
-      message: 'If an account exists with this email, a reset link has been sent'
-    });
-  } catch (error) {
-    console.error('Error sending reset email:', error.message);
-    res.status(500).json({ 
-      success: false,
-      message: 'Failed to process reset request' 
-    });
+    res.json({ success: true, message: 'If an account exists with this email, a reset link has been sent' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, message: 'Failed to send reset email' });
   }
 };
 
-// ✅ Confirm password reset (updated with password validation)
 exports.confirmPasswordReset = async (req, res) => {
   const { token, newPassword } = req.body;
-
-  // Basic password validation
   if (!newPassword || newPassword.length < 8) {
-    return res.status(400).json({ 
-      success: false,
-      message: 'Password must be at least 8 characters long' 
-    });
+    return res.status(400).json({ message: 'Password must be at least 8 characters' });
   }
-
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     const user = await User.findById(decoded.id);
-
-    if (!user) {
-      return res.status(404).json({ 
-        success: false,
-        message: 'User not found' 
-      });
-    }
+    if (!user) return res.status(404).json({ message: 'User not found' });
 
     const hashedPassword = await bcrypt.hash(newPassword, 10);
     user.password = hashedPassword;
     await user.save();
 
-    res.json({ 
-      success: true,
-      message: 'Password has been reset successfully' 
-    });
-  } catch (error) {
-    console.error('Reset token error:', error.message);
-    res.status(400).json({ 
-      success: false,
-      message: 'Invalid or expired token' 
-    });
+    res.json({ success: true, message: 'Password has been reset successfully' });
+  } catch (err) {
+    console.error(err);
+    res.status(400).json({ message: 'Invalid or expired token' });
   }
 };
 
+exports.changePassword = async (req, res) => {
+  const userId = req.user.id;
+  const { currentPassword, newPassword } = req.body;
 
+  if (!currentPassword) {
+    return res.status(400).json({ success: false, message: 'Current password is required' });
+  }
+
+  if (!newPassword || newPassword.length < 8) {
+    return res.status(400).json({ success: false, message: 'New password must be at least 8 characters long' });
+  }
+
+  try {
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    const isMatch = await bcrypt.compare(currentPassword, user.password);
+    if (!isMatch) {
+      return res.status(401).json({ success: false, message: 'Current password is incorrect' });
+    }
+
+    user.password = await bcrypt.hash(newPassword, 10);
+    await user.save();
+
+    res.json({ success: true, message: 'Password updated successfully' });
+  } catch (error) {
+    console.error('Password update error:', error.message);
+    res.status(500).json({ success: false, message: 'Something went wrong while updating password' });
+  }
+};
 // 🚪 Logout user
 exports.logout = (req, res) => {
   try {

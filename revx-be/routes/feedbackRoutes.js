@@ -9,13 +9,16 @@ router.post('/submit', authenticate, feedbackController.submitFeedback);
 // Manager edits their feedback
 router.put('/edit/:id', authenticate, feedbackController.editFeedback);
 
-// Manager views all feedback they have given
+// Manager views all feedback (pending and given)
 router.get('/manager', authenticate, feedbackController.getManagerFeedbacks);
 
-// Employee or Manager views feedback for a specific self-assessment
-router.get('/:id', authenticate, feedbackController.getFeedbackByAssessmentId);
+// View feedback for a specific self-assessment
+router.get('/assessment/:id', authenticate, feedbackController.getFeedbackByAssessmentId);
 
-// Manager deletes their own feedback
+// Get feedback by self-assessment ID
+router.get('/self-assessment/:id', authenticate, feedbackController.getFeedbackBySelfAssessmentId);
+
+// Manager deletes their feedback
 router.delete('/delete/:id', authenticate, feedbackController.deleteFeedback);
 
 module.exports = router;

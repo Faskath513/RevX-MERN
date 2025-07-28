@@ -2,18 +2,23 @@
   "version": 2,
   "builds": [
     {
-      "src": "revx-be-1/api/**/*.js",
-      "use": "@vercel/node"
+      "src": "next.config.js",
+      "use": "@vercel/next"
     }
   ],
-  "routes": [
+  "rewrites": [
     {
-      "src": "/api/(.*)",
-      "dest": "revx-be-1/api/$1.js"
+      "source": "/api/(.*)",
+      "destination": "https://your-backend-domain.com/api/$1"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/"
     }
   ],
   "env": {
-    "DB_CONNECTION_STRING": "your-db-connection-string",
-    "OTHER_ENV_VAR": "value"
+    "NEXT_PUBLIC_BACKEND_URL": "https://your-backend-domain.com",
+    "NEXTAUTH_URL": "https://your-frontend-domain.vercel.app",
+    "NEXTAUTH_SECRET": "your-nextauth-secret"
   }
 }

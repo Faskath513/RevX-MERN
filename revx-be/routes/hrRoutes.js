@@ -25,4 +25,7 @@ router.patch('/patch/:id', hrController.patchUser);
 // Delete a user by ID (Only HR)
 router.delete('/delete/:id', hrController.deleteUser);
 
+// Check username availability
+router.get('/check-username/:username', hrController.checkUsername)
+
 module.exports = router;

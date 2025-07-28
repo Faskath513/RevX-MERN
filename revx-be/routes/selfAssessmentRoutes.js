@@ -3,7 +3,6 @@ const router = express.Router();
 const selfAssessmentController = require('../controllers/selfAssessmentController');
 const { authenticate } = require('../middleware/authMiddleware');
 
-
 // Employee submits a self-assessment
 router.post('/submit', authenticate, selfAssessmentController.submitAssessment);
 
@@ -21,6 +20,5 @@ router.delete('/delete/:id', authenticate, selfAssessmentController.deleteAssess
 
 // Employee views all their own self-assessments
 router.get('/employee/mine', authenticate, selfAssessmentController.getEmployeeAssessments);
-
 
 module.exports = router;

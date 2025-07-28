@@ -46,7 +46,7 @@ exports.createGoal = async (req, res) => {
   }
 };
 
-// Get all goals
+// Get all goals for manager
 exports.getAllGoals = async (req, res) => {
   try {
     const goals = await Goal.find({ managerId: req.user.id })
@@ -56,6 +56,18 @@ exports.getAllGoals = async (req, res) => {
     res.status(200).json(goals);
   } catch (error) {
     res.status(500).json({ message: 'Error fetching goals', error });
+  }
+};
+// Get all goals for HR
+exports.getAllGoalsForHR = async (req, res) => {
+  try {
+    const goals = await Goal.find()
+      .populate('teamId', 'teamName')
+      .populate('managerId', 'username');
+
+    res.status(200).json(goals);
+  } catch (error) {
+    res.status(500).json({ message: 'Error fetching all goals for HR', error });
   }
 };
 

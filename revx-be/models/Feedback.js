@@ -15,6 +15,11 @@ const FeedbackSchema = new mongoose.Schema({
         type: String,
         required: true
     },
+    status: {
+        type: String,
+        enum: ['pending', 'submitted', 'updated'],
+        default: 'pending'
+    },
     createdAt: {
         type: Date,
         default: Date.now
@@ -22,6 +27,11 @@ const FeedbackSchema = new mongoose.Schema({
     updatedAt: {
         type: Date
     }
+}, {
+    timestamps: true
 });
+
+// Add text index for search functionality
+FeedbackSchema.index({ feedbackText: 'text' });
 
 module.exports = mongoose.model('Feedback', FeedbackSchema);

@@ -2,6 +2,11 @@ const GoalReview = require('../models/GoalReview');
 const Goal = require('../models/Goal');
 const User = require('../models/User');
 const Team = require('../models/Team');
+const {
+  notifyManagerOnGoalReviewCreated,
+  notifyHROnGoalReviewSubmitted
+} = require('../controllers/notificationController');
+
 
 // Create a goal review cycle (HR Admin assigns a review cycle to a manager)
 exports.createGoalReview = async (req, res) => {
@@ -44,6 +49,7 @@ exports.createGoalReview = async (req, res) => {
     });
 
     await newGoalReview.save();
+    await notifyManagerOnGoalReviewCreated(newGoalReview);
     res.status(201).json({ message: 'Goal Review Cycle created successfully', goalReview: newGoalReview });
   } catch (error) {
     res.status(500).json({ message: 'Error creating goal review cycle', error });
@@ -115,7 +121,7 @@ exports.getGoalReviewById = async (req, res) => {
       .populate('hrAdminId', 'username')
       .populate('managerId', 'username')
       .populate('teamId', 'teamName')
-      .populate('goalId', 'description');
+      .populate('goalId', 'projectTitle description');
 
     if (!goalReview) {
       return res.status(404).json({ message: 'Goal Review Cycle not found' });
@@ -147,6 +153,8 @@ exports.submitManagerReview = async (req, res) => {
     goalReview.submissionDate = submissionDate || new Date(); // Store submission date
     
     await goalReview.save();
+    await notifyHROnGoalReviewSubmitted(goalReview); //Notify HR on submission
+
 
     res.status(200).json({ 
       message: 'Manager review submitted successfully', 

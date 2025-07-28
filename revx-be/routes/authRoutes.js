@@ -1,7 +1,8 @@
 // authRoutes.js
 const express = require('express');
+const { authenticate } = require('../middleware/authMiddleware');
 const { register, login, requestPasswordReset,
-    confirmPasswordReset, logout } = require('../controllers/authController'); // Ensure logout is imported
+    confirmPasswordReset, logout ,changePassword } = require('../controllers/authController'); // Ensure logout is imported
 
 const router = express.Router();
 
@@ -17,6 +18,7 @@ router.post('/request-reset', requestPasswordReset);
 // Reset Password - Verify token and set new password
 router.post('/reset-password', confirmPasswordReset);
 
+router.post('/change-password', authenticate,changePassword);
 
 // Logout Route - Log out the user (only client-side, no need for token invalidation in JWT)
 router.post("/logout", logout); // Ensure logout function is defined in authController

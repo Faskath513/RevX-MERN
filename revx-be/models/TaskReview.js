@@ -37,6 +37,11 @@ const taskReviewSchema = new mongoose.Schema({
     ref: 'User', // Employee assigned the task
     required: true,
   },
+  taskDueDate: {
+  type: Date,
+  required: true, //  task's due date from Task model
+  },
+
   dueDate: {
     type: Date,
     required: true, // Deadline for task review

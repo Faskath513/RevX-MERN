@@ -1,7 +1,43 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useAuth } from '../../hooks/useAuth';
-import { Box, Typography, CircularProgress, Grid, Button, Divider, Paper, Avatar, Container, Snackbar, Dialog, DialogActions, DialogContent, DialogTitle, TextField } from '@mui/material';
+import { 
+  Box, 
+  Typography, 
+  CircularProgress, 
+  Grid, 
+  Button, 
+  Divider, 
+  Paper, 
+  Avatar, 
+  Container, 
+  Snackbar, 
+  Dialog, 
+  DialogActions, 
+  DialogContent, 
+  DialogTitle, 
+  TextField,
+  Card,
+  CardContent,
+  Chip,
+  IconButton,
+  Stack,
+  Badge,
+  Fade,
+  Slide,
+  InputAdornment
+} from '@mui/material';
+import { 
+  Edit as EditIcon,
+  Dashboard as DashboardIcon,
+  Lock as LockIcon,
+  PhotoCamera as PhotoCameraIcon,
+  Person as PersonIcon,
+  Email as EmailIcon,
+  Badge as BadgeIcon,
+  Visibility,
+  VisibilityOff
+} from '@mui/icons-material';
 import { useRouter } from 'next/router';
 import Navbar from '../../components/Navbar';
 import Footer from '../../components/Footer';
@@ -21,10 +57,13 @@ const Profile = () => {
   const [openEditProfileDialog, setOpenEditProfileDialog] = useState(false);
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
+  const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
-  const [passwordError, setPasswordError] = useState('');
+  const [passwordError, setPasswordError] = useState('');   
   const [updatedUsername, setUpdatedUsername] = useState('');
   const [updatedEmail, setUpdatedEmail] = useState('');
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -125,7 +164,7 @@ const Profile = () => {
         setSnackbarMessage('Failed to upload profile picture.');
         setOpenSnackbar(true);
     }
-};
+  };
 
   const handleOpenPasswordDialog = () => {
     setOpenPasswordDialog(true);
@@ -133,26 +172,27 @@ const Profile = () => {
 
   const handleClosePasswordDialog = () => {
     setOpenPasswordDialog(false);
-    setUsername(''); // Clear username
-    setEmail(''); // Clear email
-    setNewPassword(''); // Clear password fields
+    setNewPassword('');
+    setCurrentPassword('');
     setPasswordError('');
+    setShowCurrentPassword(false);
+    setShowNewPassword(false);
   };
 
   const handlePasswordReset = async () => {
-    if (!username || !email || !newPassword) {
-      setPasswordError('Username, email, and new password are required.');
+    if (!currentPassword) {
+      setPasswordError('Current password is required.');
+      return;
+    }
+    if (!newPassword || newPassword.length < 8) {
+      setPasswordError('New password must be at least 8 characters long.');
       return;
     }
 
     try {
       const response = await axios.post(
-        `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/auth/reset-password`,
-        {
-          username,
-          email,
-          newPassword,
-        },
+        `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/auth/change-password`,
+        { currentPassword, newPassword },
         {
           headers: {
             Authorization: `Bearer ${user.token}`,
@@ -167,7 +207,7 @@ const Profile = () => {
       }
     } catch (err) {
       console.error('Error resetting password:', err);
-      setPasswordError('Failed to reset password.');
+      setPasswordError(err.response?.data?.message || 'Failed to reset password.');
     }
   };
 
@@ -232,159 +272,494 @@ const Profile = () => {
         setSnackbarMessage(errorMessage);
         setOpenSnackbar(true);
     }
-};
+  };
+
   const handleCloseSnackbar = () => {
     setOpenSnackbar(false);
   };
 
+  // Role color mapping
+  const getRoleColor = (role) => {
+    const colors = {
+      'admin': '#f44336',
+      'teacher': '#2196f3',
+      'student': '#4caf50',
+      'moderator': '#ff9800'
+    };
+    return colors[role?.toLowerCase()] || '#0c4672';
+  };
+
   if (loading) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
-        <CircularProgress color="primary" size={60} />
+      <Box sx={{ 
+        display: 'flex', 
+        justifyContent: 'center', 
+        alignItems: 'center', 
+        height: '100vh',
+        background: 'linear-gradient(45deg, #0c4672, #00bcd4)',
+      }}>
+        <Box sx={{ textAlign: 'center' }}>
+          <CircularProgress 
+            size={80} 
+            thickness={4}
+            sx={{ 
+              color: '#fff',
+              mb: 2,
+              '& .MuiCircularProgress-circle': {
+                strokeLinecap: 'round',
+              }
+            }} 
+          />
+          <Typography variant="h6" sx={{ color: '#fff', fontWeight: 300 }}>
+            Loading your profile...
+          </Typography>
+        </Box>
       </Box>
     );
   }
 
   if (error) {
     return (
-      <Box sx={{ padding: 2 }}>
-        <Typography color="error">{error}</Typography>
+      <Box sx={{ 
+        padding: 4,
+        background: 'linear-gradient(45deg, #0c4672, #00bcd4)',
+        minHeight: '100vh',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center'
+      }}>
+        <Paper sx={{ p: 4, textAlign: 'center', borderRadius: 3 }}>
+          <Typography color="error" variant="h6">{error}</Typography>
+        </Paper>
       </Box>
     );
   }
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', background: 'linear-gradient(135deg, #153B60, #15B2C0 90%)' }}>
+    <Box sx={{ 
+      display: 'flex', 
+      flexDirection: 'column', 
+      minHeight: '100vh', 
+      background: 'linear-gradient(45deg, #0c4672, #00bcd4)',
+    }}>
       <Navbar />
-      <Container maxWidth="lg" sx={{ flex: 1, marginTop: 4, paddingBottom: 6 }}>
-        <Paper sx={{ padding: 3, maxWidth: 800, margin: 'auto', borderRadius: 3, boxShadow: 5, backgroundColor: '#fff' }}>
-          <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: 3 }}>
-            <Avatar
-              alt="User Avatar"
-              src={imagePreview || '/default-avatar.png'}
-              sx={{ width: 120, height: 120, marginBottom: 2, border: '5px solid #153B60', boxShadow: 3 }}
-            />
-            <Typography variant="h5" sx={{ fontWeight: 'bold', color: '#153B60' }}>
-              {userDetails?.username}
-            </Typography>
-            <Typography variant="body2" sx={{ color: '#153B60', fontStyle: 'italic' }}>
-              {userDetails?.email}
-            </Typography>
+      
+      <Container maxWidth="lg" sx={{ flex: 1, py: 4 }}>
+        <Fade in={true} timeout={800}>
+          <Box>
+            {/* Main Profile Card */}
+            <Card sx={{ 
+              borderRadius: 4, 
+              boxShadow: '0 20px 40px rgba(0,0,0,0.1)',
+              overflow: 'visible',
+              position: 'relative',
+              background: 'linear-gradient(145deg, #ffffff 0%, #f8f9fa 100%)'
+            }}>
+              {/* Header Section with Avatar */}
+              <Box sx={{ 
+                background: 'linear-gradient(45deg, #0c4672, #00bcd4)',
+                height: 200,
+                position: 'relative',
+                borderRadius: '16px 16px 0 0'
+              }}>
+                <Box sx={{
+                  position: 'absolute',
+                  top: '50%',
+                  left: '50%',
+                  transform: 'translate(-50%, -50%)',
+                  textAlign: 'center'
+                }}>
+                  <Badge
+                    overlap="circular"
+                    anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+                    badgeContent={
+                      <IconButton
+                        size="small"
+                        sx={{
+                          backgroundColor: '#fff',
+                          color: '#0c4672',
+                          '&:hover': { backgroundColor: '#f5f5f5' },
+                          width: 32,
+                          height: 32
+                        }}
+                      >
+                        <PhotoCameraIcon fontSize="small" />
+                      </IconButton>
+                    }
+                  >
+                    <Avatar
+                      alt="User Avatar"
+                      src={imagePreview || '/default-avatar.png'}
+                      sx={{ 
+                        width: 140, 
+                        height: 140,
+                        border: '6px solid #fff',
+                        boxShadow: '0 8px 24px rgba(0,0,0,0.15)',
+                        transition: 'transform 0.3s ease',
+                        '&:hover': {
+                          transform: 'scale(1.05)'
+                        }
+                      }}
+                    />
+                  </Badge>
+                </Box>
+              </Box>
+
+              <CardContent sx={{ pt: 8, pb: 4 }}>
+                {/* User Info Header */}
+                <Box sx={{ textAlign: 'center', mb: 4 }}>
+                  <Typography variant="h4" sx={{ 
+                    fontWeight: 700,
+                    color: '#2c3e50',
+                    mb: 1,
+                    fontSize: { xs: '1.75rem', sm: '2.125rem' }
+                  }}>
+                    {userDetails?.username}
+                  </Typography>
+                  <Typography variant="body1" sx={{ 
+                    color: '#7f8c8d',
+                    mb: 2,
+                    fontSize: '1.1rem'
+                  }}>
+                    {userDetails?.email}
+                  </Typography>
+                  <Chip
+                    label={userDetails?.role}
+                    sx={{
+                      backgroundColor: getRoleColor(userDetails?.role),
+                      color: '#fff',
+                      fontWeight: 600,
+                      fontSize: '0.875rem',
+                      height: 32,
+                      textTransform: 'capitalize'
+                    }}
+                  />
+                </Box>
+
+                <Divider sx={{ my: 4, opacity: 0.3 }} />
+
+                {/* Profile Details Grid */}
+                <Grid container spacing={3} sx={{ mb: 4 }}>
+                  <Grid item xs={12} md={4}>
+                    <Card sx={{ 
+                      p: 3, 
+                      textAlign: 'center',
+                      borderRadius: 3,
+                      background: 'linear-gradient(145deg, #f8f9fa 0%, #e9ecef 100%)',
+                      transition: 'transform 0.3s ease, box-shadow 0.3s ease',
+                      '&:hover': {
+                        transform: 'translateY(-4px)',
+                        boxShadow: '0 12px 24px rgba(0,0,0,0.1)'
+                      }
+                    }}>
+                      <PersonIcon sx={{ fontSize: 40, color: '#0c4672', mb: 2 }} />
+                      <Typography variant="h6" sx={{ fontWeight: 600, color: '#2c3e50' }}>
+                        Username
+                      </Typography>
+                      <Typography variant="body1" sx={{ color: '#7f8c8d', mt: 1 }}>
+                        {userDetails?.username || 'N/A'}
+                      </Typography>
+                    </Card>
+                  </Grid>
+                  
+                  <Grid item xs={12} md={4}>
+                    <Card sx={{ 
+                      p: 3, 
+                      textAlign: 'center',
+                      borderRadius: 3,
+                      background: 'linear-gradient(145deg, #f8f9fa 0%, #e9ecef 100%)',
+                      transition: 'transform 0.3s ease, box-shadow 0.3s ease',
+                      '&:hover': {
+                        transform: 'translateY(-4px)',
+                        boxShadow: '0 12px 24px rgba(0,0,0,0.1)'
+                      }
+                    }}>
+                      <EmailIcon sx={{ fontSize: 40, color: '#0c4672', mb: 2 }} />
+                      <Typography variant="h6" sx={{ fontWeight: 600, color: '#2c3e50' }}>
+                        Email
+                      </Typography>
+                      <Typography variant="body1" sx={{ color: '#7f8c8d', mt: 1 }}>
+                        {userDetails?.email || 'N/A'}
+                      </Typography>
+                    </Card>
+                  </Grid>
+                  
+                  <Grid item xs={12} md={4}>
+                    <Card sx={{ 
+                      p: 3, 
+                      textAlign: 'center',
+                      borderRadius: 3,
+                      background: 'linear-gradient(145deg, #f8f9fa 0%, #e9ecef 100%)',
+                      transition: 'transform 0.3s ease, box-shadow 0.3s ease',
+                      '&:hover': {
+                        transform: 'translateY(-4px)',
+                        boxShadow: '0 12px 24px rgba(0,0,0,0.1)'
+                      }
+                    }}>
+                      <BadgeIcon sx={{ fontSize: 40, color: '#0c4672', mb: 2 }} />
+                      <Typography variant="h6" sx={{ fontWeight: 600, color: '#2c3e50' }}>
+                        User ID
+                      </Typography>
+                      <Typography variant="body2" sx={{ 
+                        color: '#7f8c8d', 
+                        mt: 1,
+                        fontFamily: 'monospace',
+                        wordBreak: 'break-all'
+                      }}>
+                        {userDetails?._id || 'N/A'}
+                      </Typography>
+                    </Card>
+                  </Grid>
+                </Grid>
+
+                {/* Action Buttons */}
+                <Stack 
+                  direction={{ xs: 'column', sm: 'row' }} 
+                  spacing={2} 
+                  justifyContent="center"
+                  alignItems="center"
+                >
+                  <Button
+                    variant="contained"
+                    startIcon={<EditIcon />}
+                    onClick={handleOpenEditProfileDialog}
+                    sx={{
+                      background: 'linear-gradient(45deg, #0c4672, #00bcd4)',
+                      color: '#fff',
+                      px: 4,
+                      py: 1.5,
+                      borderRadius: 3,
+                      fontWeight: 600,
+                      fontSize: '1rem',
+                      minWidth: 160,
+                      boxShadow: '0 8px 16px rgba(102, 126, 234, 0.3)',
+                      '&:hover': {
+                        background: 'linear-gradient(45deg, #0c4672, #00bcd4)',
+                        transform: 'translateY(-2px)',
+                        boxShadow: '0 12px 24px rgba(102, 126, 234, 0.4)'
+                      }
+                    }}
+                  >
+                    Edit Profile
+                  </Button>
+                  
+                  <Button
+                    variant="contained"
+                    startIcon={<DashboardIcon />}
+                    onClick={() => router.push(`/${userDetails?.role}`)}
+                    sx={{
+                      background: 'linear-gradient(135deg, #4CAF50 0%, #45a049 100%)',
+                      color: '#fff',
+                      px: 4,
+                      py: 1.5,
+                      borderRadius: 3,
+                      fontWeight: 600,
+                      fontSize: '1rem',
+                      minWidth: 160,
+                      boxShadow: '0 8px 16px rgba(76, 175, 80, 0.3)',
+                      '&:hover': {
+                        background: 'linear-gradient(135deg, #45a049 0%, #4CAF50 100%)',
+                        transform: 'translateY(-2px)',
+                        boxShadow: '0 12px 24px rgba(76, 175, 80, 0.4)'
+                      }
+                    }}
+                  >
+                    Dashboard
+                  </Button>
+                  
+                  <Button
+                    variant="contained"
+                    startIcon={<LockIcon />}
+                    onClick={handleOpenPasswordDialog}
+                    sx={{
+                      background: 'linear-gradient(135deg, #FF9800 0%, #F57C00 100%)',
+                      color: '#fff',
+                      px: 4,
+                      py: 1.5,
+                      borderRadius: 3,
+                      fontWeight: 600,
+                      fontSize: '1rem',
+                      minWidth: 160,
+                      boxShadow: '0 8px 16px rgba(255, 152, 0, 0.3)',
+                      '&:hover': {
+                        background: 'linear-gradient(135deg, #F57C00 0%, #FF9800 100%)',
+                        transform: 'translateY(-2px)',
+                        boxShadow: '0 12px 24px rgba(255, 152, 0, 0.4)'
+                      }
+                    }}
+                  >
+                    Change Password
+                  </Button>
+                </Stack>
+              </CardContent>
+            </Card>
           </Box>
-          <Grid container spacing={2}>
-            <Grid item xs={12}>
-              <Typography variant="h6">
-                <strong>Role:</strong> {userDetails?.role}
-              </Typography>
-            </Grid>
-            <Grid item xs={12}>
-              <Typography variant="h6">
-                <strong>Username:</strong> {userDetails?.username || 'N/A'}
-              </Typography>
-            </Grid>
-            <Grid item xs={12}>
-              <Typography variant="h6">
-                <strong>Email:</strong> {userDetails?.email || 'N/A'}
-              </Typography>
-            </Grid>
-            <Grid item xs={12}>
-              <Typography variant="h6">
-                <strong>ID:</strong> {userDetails?._id || 'N/A'}
-              </Typography>
-            </Grid>
-          </Grid>
-          <Divider sx={{ marginY: 3 }} />
-          <Box sx={{ textAlign: 'center', marginTop: 4 }}>
-            <Grid container spacing={2} justifyContent="center">
-              <Grid item xs={8} sm={4} md={4}>
-                <Button
-                  variant="contained"
-                  color="primary"
-                  onClick={handleOpenEditProfileDialog}
-                  sx={{ width: '100%', height: '48px', fontSize: '16px' }}
-                >
-                  Edit Profile
-                </Button>
-              </Grid>
-              <Grid item xs={12} sm={6} md={4}>
-                <Button
-                  variant="contained"
-                  color="secondary"
-                  onClick={() => router.push(`/${userDetails?.role}`)}
-                  sx={{ width: '100%', height: '48px', fontSize: '16px' }}
-                >
-                  Go to Dashboard
-                </Button>
-              </Grid>
-              <Grid item xs={12} sm={6} md={4}>
-                <Button
-                  variant="contained"
-                  color="warning"
-                  onClick={handleOpenPasswordDialog}
-                  sx={{ width: '100%', height: '48px', fontSize: '16px' }}
-                >
-                  Reset Password
-                </Button>
-              </Grid>
-            </Grid>
-          </Box>
-        </Paper>
+        </Fade>
       </Container>
+      
       <Footer sx={{ marginTop: 'auto' }} />
 
-      {/* Snackbar for success/error message */}
-      <Snackbar open={openSnackbar} autoHideDuration={6000} onClose={handleCloseSnackbar}>
-        <MuiAlert onClose={handleCloseSnackbar} severity={error ? 'error' : 'success'} sx={{ width: '100%' }}>
+      {/* Enhanced Snackbar */}
+      <Snackbar 
+        open={openSnackbar} 
+        autoHideDuration={6000} 
+        onClose={handleCloseSnackbar}
+        anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
+      >
+        <MuiAlert 
+          onClose={handleCloseSnackbar} 
+          severity={error ? 'error' : 'success'} 
+          sx={{ 
+            width: '100%',
+            borderRadius: 2,
+            boxShadow: '0 8px 16px rgba(0,0,0,0.1)'
+          }}
+          variant="filled"
+        >
           {snackbarMessage}
         </MuiAlert>
       </Snackbar>
 
-      {/* Reset Password Dialog */}
-      <Dialog open={openPasswordDialog} onClose={handleClosePasswordDialog}>
-        <DialogTitle>Reset Password</DialogTitle>
-        <DialogContent>
+      {/* Enhanced Password Dialog */}
+      <Dialog 
+        open={openPasswordDialog} 
+        onClose={handleClosePasswordDialog}
+        maxWidth="sm"
+        fullWidth
+        PaperProps={{
+          sx: {
+            borderRadius: 3,
+            boxShadow: '0 20px 40px rgba(0,0,0,0.1)'
+          }
+        }}
+        TransitionComponent={Slide}
+        TransitionProps={{ direction: 'up' }}
+      >
+        <DialogTitle sx={{ 
+          pb: 2,
+          background: 'linear-gradient(45deg, #0c4672, #00bcd4)',
+          color: '#fff',
+          fontWeight: 600
+        }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <LockIcon />
+            Reset Password
+          </Box>
+        </DialogTitle>
+        <DialogContent sx={{ pt: 3 }}>
           <TextField
-            label="Username"
+            label="Current Password"
+            type={showCurrentPassword ? "text" : "password"}
             fullWidth
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
+            value={currentPassword}
+            onChange={(e) => setCurrentPassword(e.target.value)}
             margin="normal"
             required
-          />
-          <TextField
-            label="Email"
-            fullWidth
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            margin="normal"
-            required
+            error={!!passwordError && !currentPassword}
+            helperText={!!passwordError && !currentPassword ? passwordError : ''}
+            sx={{
+              '& .MuiOutlinedInput-root': {
+                borderRadius: 2
+              }
+            }}
+            InputProps={{
+              endAdornment: (
+                <InputAdornment position="end">
+                  <IconButton
+                    aria-label="toggle current password visibility"
+                    onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                    edge="end"
+                    sx={{ color: '#0c4672' }}
+                  >
+                    {showCurrentPassword ? <VisibilityOff /> : <Visibility />}
+                  </IconButton>
+                </InputAdornment>
+              )
+            }}
           />
           <TextField
             label="New Password"
-            type="password"
+            type={showNewPassword ? "text" : "password"}
             fullWidth
             value={newPassword}
             onChange={(e) => setNewPassword(e.target.value)}
             margin="normal"
             required
-            error={!!passwordError}
-            helperText={passwordError}
+            error={!!passwordError && !!newPassword && newPassword.length < 8}
+            helperText={!!passwordError && newPassword.length < 8 ? passwordError : 'Minimum 8 characters required'}
+            sx={{
+              '& .MuiOutlinedInput-root': {
+                borderRadius: 2
+              }
+            }}
+            InputProps={{
+              endAdornment: (
+                <InputAdornment position="end">
+                  <IconButton
+                    aria-label="toggle new password visibility"
+                    onClick={() => setShowNewPassword(!showNewPassword)}
+                    edge="end"
+                    sx={{ color: '#0c4672' }}
+                  >
+                    {showNewPassword ? <VisibilityOff /> : <Visibility />}
+                  </IconButton>
+                </InputAdornment>
+              )
+            }}
           />
         </DialogContent>
-        <DialogActions>
-          <Button onClick={handleClosePasswordDialog} color="primary">
+        <DialogActions sx={{ p: 3, gap: 1 }}>
+          <Button 
+            onClick={handleClosePasswordDialog}
+            variant="outlined"
+            sx={{ borderRadius: 2, minWidth: 100 }}
+          >
             Cancel
           </Button>
-          <Button onClick={handlePasswordReset} color="primary">
-            Reset Password
+          <Button 
+            onClick={handlePasswordReset}
+            variant="contained"
+            sx={{
+              background: 'linear-gradient(45deg, #0c4672, #00bcd4)',
+              borderRadius: 2,
+              minWidth: 100,
+              '&:hover': {
+                background: 'linear-gradient(45deg, #0c4672, #0c8b9cff)',
+              }
+            }}
+          >
+            Update Password
           </Button>
         </DialogActions>
       </Dialog>
 
-      {/* Edit Profile Dialog */}
-      <Dialog open={openEditProfileDialog} onClose={handleCloseEditProfileDialog}>
-        <DialogTitle>Edit Profile</DialogTitle>
-        <DialogContent>
+      {/* Enhanced Edit Profile Dialog */}
+      <Dialog 
+        open={openEditProfileDialog} 
+        onClose={handleCloseEditProfileDialog}
+        maxWidth="sm"
+        fullWidth
+        PaperProps={{
+          sx: {
+            borderRadius: 3,
+            boxShadow: '0 20px 40px rgba(0,0,0,0.1)'
+          }
+        }}
+        TransitionComponent={Slide}
+        TransitionProps={{ direction: 'up' }}
+      >
+        <DialogTitle sx={{ 
+          pb: 2,
+          background: 'linear-gradient(45deg, #0c4672, #00bcd4)',
+          color: '#fff',
+          fontWeight: 600
+        }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <EditIcon />
+            Edit Profile
+          </Box>
+        </DialogTitle>
+        <DialogContent sx={{ pt: 3 }}>
           <TextField
             label="Username"
             fullWidth
@@ -392,6 +767,11 @@ const Profile = () => {
             onChange={(e) => setUpdatedUsername(e.target.value)}
             margin="normal"
             required
+            sx={{
+              '& .MuiOutlinedInput-root': {
+                borderRadius: 2
+              }
+            }}
           />
           <TextField
             label="Email"
@@ -401,21 +781,92 @@ const Profile = () => {
             onChange={(e) => setUpdatedEmail(e.target.value)}
             margin="normal"
             required
+            sx={{
+              '& .MuiOutlinedInput-root': {
+                borderRadius: 2
+              }
+            }}
           />
-          {/* Profile Picture Upload */}
-          <Box sx={{ textAlign: 'center', marginTop: 3 }}>
-            <input type="file" accept="image/*" onChange={handleProfilePictureChange} />
-            <Button variant="contained" color="primary" onClick={handleUploadProfilePicture} sx={{ marginTop: 2 }}>
-              Upload Profile Picture
-            </Button>
-            {fileError && <Typography color="error">{fileError}</Typography>}
-          </Box>
+          
+          {/* Enhanced Profile Picture Upload */}
+          <Card sx={{ mt: 3, p: 3, borderRadius: 2, backgroundColor: '#f8f9fa' }}>
+            <Typography variant="h6" sx={{ mb: 2, color: '#2c3e50', fontWeight: 600 }}>
+              Profile Picture
+            </Typography>
+            <Box sx={{ textAlign: 'center' }}>
+              <input 
+                type="file" 
+                accept="image/*" 
+                onChange={handleProfilePictureChange}
+                style={{ display: 'none' }}
+                id="profile-picture-input"
+              />
+              <label htmlFor="profile-picture-input">
+                <Button
+                  variant="outlined"
+                  component="span"
+                  startIcon={<PhotoCameraIcon />}
+                  sx={{
+                    borderRadius: 2,
+                    mb: 2,
+                    borderColor: '#667eea',
+                    color: '#667eea',
+                    '&:hover': {
+                      borderColor: '#764ba2',
+                      backgroundColor: 'rgba(102, 126, 234, 0.04)'
+                    }
+                  }}
+                >
+                  Choose Image
+                </Button>
+              </label>
+              {profilePicture && (
+                <Typography variant="body2" sx={{ mb: 2, color: '#7f8c8d' }}>
+                  Selected: {profilePicture.name}
+                </Typography>
+              )}
+              <Button 
+                variant="contained" 
+                onClick={handleUploadProfilePicture}
+                disabled={!profilePicture}
+                sx={{
+                  background: 'linear-gradient(135deg, #4CAF50 0%, #45a049 100%)',
+                  borderRadius: 2,
+                  '&:hover': {
+                    background: 'linear-gradient(135deg, #45a049 0%, #4CAF50 100%)'
+                  }
+                }}
+              >
+                Upload Picture
+              </Button>
+              {fileError && (
+                <Typography color="error" variant="body2" sx={{ mt: 1 }}>
+                  {fileError}
+                </Typography>
+              )}
+            </Box>
+          </Card>
         </DialogContent>
-        <DialogActions>
-          <Button onClick={handleCloseEditProfileDialog} color="primary">
+        <DialogActions sx={{ p: 3, gap: 1 }}>
+          <Button 
+            onClick={handleCloseEditProfileDialog}
+            variant="outlined"
+            sx={{ borderRadius: 2, minWidth: 100 }}
+          >
             Cancel
           </Button>
-          <Button onClick={handleProfileUpdate} color="primary">
+          <Button 
+            onClick={handleProfileUpdate}
+            variant="contained"
+            sx={{
+              background: 'linear-gradient(45deg, #0c4672, #00bcd4)',
+              borderRadius: 2,
+              minWidth: 100,
+              '&:hover': {
+                background: 'linear-gradient(45deg, #0c4672, #00bcd4)',
+              }
+            }}
+          >
             Update Profile
           </Button>
         </DialogActions>

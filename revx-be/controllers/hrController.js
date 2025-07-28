@@ -90,7 +90,7 @@ exports.createUser = async (req, res) => {
     });
   } catch (error) {
     console.error('Error creating user:', error.message);
-    res.status(500).json({ message: 'Internal server error', error: error.message });
+    res.status(500).json({ message: 'User Name Already Exist', error: error.message });
   }
 };
 
@@ -167,7 +167,34 @@ exports.updateUser = async (req, res) => {
     res.status(500).json({ message: 'Internal server error' });
   }
 };
+exports.checkUsername = async (req, res) => {
+  try {
+    const { username } = req.params;
+    
+    // Basic validation
+    if (!username || username.trim().length < 3) {
+      return res.status(400).json({ 
+        success: false,
+        message: 'Username must be at least 3 characters long' 
+      });
+    }
 
+    // Check if username exists
+    const existingUser = await User.findOne({ username });
+    
+    res.status(200).json({ 
+      exists: !!existingUser,
+      message: existingUser ? 'Username already taken' : 'Username available'
+    });
+    
+  } catch (error) {
+    console.error('Error checking username:', error);
+    res.status(500).json({ 
+      success: false,
+      message: 'Error checking username availability' 
+    });
+  }
+};
 // Patch (partial update) user by ID
 exports.patchUser = async (req, res) => {
   const { id } = req.params;
